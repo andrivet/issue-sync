@@ -131,7 +131,9 @@ func UpdateIssue(config cfg.Config, ghIssue github.Issue, jIssue jira.Issue, ghC
 		}
 		fields.Unknowns[config.GetFieldKey(cfg.GitHubLabels)] = strings.Join(labels, ",")
 
-		fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().Format(dateFormat)
+		// https://developer.atlassian.com/jiradev/jira-apis/about-the-jira-rest-apis/jira-rest-api-tutorials/jira-rest-api-example-create-issue
+		// DateTime has the format 2011-10-19T10:29:29.908+1100
+		fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format("2006-01-02T15:04:05.0-0700")
 
 		fields.Type = jIssue.Fields.Type
 
@@ -193,7 +195,9 @@ func CreateIssue(config cfg.Config, issue github.Issue, ghClient clients.GitHubC
 	}
 	fields.Unknowns[config.GetFieldKey(cfg.GitHubLabels)] = strings.Join(strs, ",")
 
-	fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().Format(dateFormat)
+	// https://developer.atlassian.com/jiradev/jira-apis/about-the-jira-rest-apis/jira-rest-api-tutorials/jira-rest-api-example-create-issue
+	// DateTime has the format 2011-10-19T10:29:29.908+1100
+	fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format("2006-01-02T15:04:05.0-0700")
 
 	jIssue := jira.Issue{
 		Fields: &fields,
