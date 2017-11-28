@@ -11,7 +11,7 @@ import (
 )
 
 // dateFormat is the format used for the Last IS Update field
-const dateFormat = "2006-01-02T15:04:05-0700"
+const dateFormat = "2006-01-02T15:04:05.0-0700"
 
 // CompareIssues gets the list of GitHub issues updated since the `since` date,
 // gets the list of JIRA issues which have GitHub ID custom fields in that list,
@@ -133,7 +133,7 @@ func UpdateIssue(config cfg.Config, ghIssue github.Issue, jIssue jira.Issue, ghC
 
 		// https://developer.atlassian.com/jiradev/jira-apis/about-the-jira-rest-apis/jira-rest-api-tutorials/jira-rest-api-example-create-issue
 		// DateTime has the format 2011-10-19T10:29:29.908+1100
-		fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format("2006-01-02T15:04:05.0-0700")
+		fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format(dateFormat)
 
 		fields.Type = jIssue.Fields.Type
 
@@ -197,7 +197,7 @@ func CreateIssue(config cfg.Config, issue github.Issue, ghClient clients.GitHubC
 
 	// https://developer.atlassian.com/jiradev/jira-apis/about-the-jira-rest-apis/jira-rest-api-tutorials/jira-rest-api-example-create-issue
 	// DateTime has the format 2011-10-19T10:29:29.908+1100
-	fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format("2006-01-02T15:04:05.0-0700")
+	fields.Unknowns[config.GetFieldKey(cfg.LastISUpdate)] = time.Now().UTC().Format(dateFormat)
 
 	jIssue := jira.Issue{
 		Fields: &fields,
