@@ -31,7 +31,7 @@ func CompareComments(config cfg.Config, ghIssue github.Issue, jIssue jira.Issue,
 		return nil
 	}
 
-	ghComments, err := ghClient.ListComments(ghIssue)
+	ghComments, err := ghClient.ListComments(github.Issue(ghIssue))
 	if err != nil {
 		return err
 	}
