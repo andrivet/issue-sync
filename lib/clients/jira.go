@@ -51,19 +51,20 @@ type JIRAClient interface {
 	UpdateIssue(issue jira.Issue) (jira.Issue, error)
 	CreateComment(issue jira.Issue, comment github.IssueComment, github GitHubClient) (jira.Comment, error)
 	UpdateComment(issue jira.Issue, id string, comment github.IssueComment, github GitHubClient) (jira.Comment, error)
+	GetClient() jira.Client
 }
 
 // NewJIRAClient creates a new JIRAClient and configures it with
 // the config object provided. The type of clients created depends
 // on the configuration; currently, it creates either a standard
 // clients, or a dry-run clients.
-func NewJIRAClient(config *cfg.Config) (JIRAClient, error) {
+func NewJIRAClient(config cfg.Config, project jira.Project) (JIRAClient, error) {
 	log := config.GetLogger()
 
 	var oauth *http.Client
 	var err error
 	if !config.IsBasicAuth() {
-		oauth, err = newJIRAHTTPClient(*config)
+		oauth, err = newJIRAHTTPClient(config)
 		if err != nil {
 			log.Errorf("Error getting OAuth config: %v", err)
 			return dryrunJIRAClient{}, err
@@ -84,21 +85,29 @@ func NewJIRAClient(config *cfg.Config) (JIRAClient, error) {
 
 	log.Debug("JIRA clients initialized")
 
-	config.LoadJIRAConfig(*client)
-
 	if config.IsDryRun() {
 		j = dryrunJIRAClient{
-			config: *config,
+			config: config,
 			client: *client,
+			project: project,
 		}
 	} else {
 		j = realJIRAClient{
-			config: *config,
+			config: config,
 			client: *client,
+			project: project,
 		}
 	}
 
 	return j, nil
+}
+
+// GetClient returns the underlying JIRA API client used by our client.
+// It's made available for the configuration object to use, since it
+// can't import this class due to circular dependencies. If you think
+// you want to call this function, consider extending the class first
+func (j realJIRAClient) GetClient() jira.Client {
+	return j.client
 }
 
 // realJIRAClient is a standard JIRA clients, which actually makes
@@ -107,6 +116,7 @@ func NewJIRAClient(config *cfg.Config) (JIRAClient, error) {
 type realJIRAClient struct {
 	config cfg.Config
 	client jira.Client
+	project jira.Project
 }
 
 // ListIssues returns a list of JIRA issues on the configured project which
@@ -125,9 +135,9 @@ func (j realJIRAClient) ListIssues(ids []int) ([]jira.Issue, error) {
 	// we'll need to do the filtering ourselves.
 	if len(ids) < maxJQLIssueLength {
 		jql = fmt.Sprintf("project='%s' AND cf[%s] in (%s)",
-			j.config.GetProjectKey(), j.config.GetFieldID(cfg.GitHubID), strings.Join(idStrs, ","))
+			j.project.Key, j.config.GetFieldID(cfg.GitHubID), strings.Join(idStrs, ","))
 	} else {
-		jql = fmt.Sprintf("project='%s'", j.config.GetProjectKey())
+		jql = fmt.Sprintf("project='%s'", j.project.Key)
 	}
 
 	ji, res, err := j.request(func() (interface{}, *jira.Response, error) {
@@ -373,6 +383,7 @@ func (j realJIRAClient) request(f func() (interface{}, *jira.Response, error)) (
 type dryrunJIRAClient struct {
 	config cfg.Config
 	client jira.Client
+	project jira.Project
 }
 
 // newlineReplaceRegex is a regex to match both "\r\n" and just "\n" newline styles,
@@ -394,6 +405,14 @@ func truncate(s string, length int) string {
 	return fmt.Sprintf("%s...", s[0:length])
 }
 
+// GetClient returns the underlying JIRA API client used by our client.
+// It's made available for the configuration object to use, since it
+// can't import this class due to circular dependencies. If you think
+// you want to call this function, consider extending the class first.
+func (j dryrunJIRAClient) GetClient() jira.Client {
+	return j.client
+}
+
 // ListIssues returns a list of JIRA issues on the configured project which
 // have GitHub IDs in the provided list. `ids` should be a comma-separated
 // list of GitHub IDs.
@@ -412,9 +431,9 @@ func (j dryrunJIRAClient) ListIssues(ids []int) ([]jira.Issue, error) {
 	// we'll need to do the filtering ourselves.
 	if len(ids) < maxJQLIssueLength {
 		jql = fmt.Sprintf("project='%s' AND cf[%s] in (%s)",
-			j.config.GetProjectKey(), j.config.GetFieldID(cfg.GitHubID), strings.Join(idStrs, ","))
+			j.project.Key, j.config.GetFieldID(cfg.GitHubID), strings.Join(idStrs, ","))
 	} else {
-		jql = fmt.Sprintf("project='%s'", j.config.GetProjectKey())
+		jql = fmt.Sprintf("project='%s'", j.project.Key)
 	}
 
 	ji, res, err := j.request(func() (interface{}, *jira.Response, error) {

@@ -180,7 +180,7 @@ func CreateIssue(config cfg.Config, issue TranslatedIssue, ghClient clients.GitH
 		Type: jira.IssueType{
 			Name: "Task", // TODO: Determine issue type
 		},
-		Project:     config.GetProject(),
+		Project:     config.GetProject(ghClient.GetRepo()),
 		Summary:     issue.GetTitle(),
 		Description: issue.GetTranslatedBody(),
 		Unknowns:    map[string]interface{}{},
