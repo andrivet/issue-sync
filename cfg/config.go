@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/andygrunwald/go-jira"
 	"github.com/dghubble/oauth1"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
+	"github.com/andygrunwald/go-jira"
 )
 
 // dateFormat is the format used for the `since` configuration parameter
@@ -263,7 +263,7 @@ type configFile struct {
 	RepoName    string        `json:"repo-name" mapstructure:"repo-name"`
 	JIRAURI     string        `json:"jira-uri" mapstructure:"jira-uri"`
 	JIRAProject string        `json:"jira-project" mapstructure:"jira-project"`
-	Projects    []jira.Project `json:"projects" mapstructure:"projects"`
+	Projects    []Project 	  `json:"projects" mapstructure:"projects"`
 	Since       string        `json:"since" mapstructure:"since"`
 	Timeout     time.Duration `json:"timeout" mapstructure:"timeout"`
 }
@@ -280,7 +280,13 @@ func (c *Config) SaveConfig() error {
 		return err
 	}
 
-	f, err := os.OpenFile(c.cmdConfig.ConfigFileUsed(), os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
+	configFile := c.cmdConfig.ConfigFileUsed()
+	if configFile == "" {
+		c.log.Debug("No configuration file loaded so do not save settings")
+		return nil
+	}
+
+	f, err := os.OpenFile(configFile, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -304,12 +310,14 @@ func newViper(appName, cfgFile string) *viper.Viper {
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	v.AutomaticEnv()
 
-	v.SetConfigName(fmt.Sprintf("config-%s", appName))
-	v.AddConfigPath(".")
 	if cfgFile != "" {
 		v.SetConfigFile(cfgFile)
+	} else {
+		v.AddConfigPath("$HOME/")
+		v.AddConfigPath(".")
+		v.SetConfigName(".issue-sync")
+		v.SetConfigType("json")
 	}
-	v.SetConfigType("json")
 
 	if err := v.ReadInConfig(); err == nil {
 		log.WithField("file", v.ConfigFileUsed()).Infof("config file loaded")
