@@ -359,6 +359,10 @@ func (j realJIRAClient) request(f func() (interface{}, *jira.Response, error)) (
 	op := func() error {
 		var err error
 		ret, res, err = f()
+		if err != nil {
+			body, _ := ioutil.ReadAll(res.Body)
+			log.Debug(string(body))
+		}
 		return err
 	}
 
@@ -635,6 +639,10 @@ func (j dryrunJIRAClient) request(f func() (interface{}, *jira.Response, error))
 	op := func() error {
 		var err error
 		ret, res, err = f()
+		if err != nil {
+			body, _ := ioutil.ReadAll(res.Body)
+			log.Debug(string(body))
+		}
 		return err
 	}
 
