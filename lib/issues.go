@@ -210,6 +210,11 @@ func CreateIssue(config cfg.Config, issue TranslatedIssue, ghClient clients.GitH
 		return err
 	}
 
+	// If the Issue was not created (for ex. when using dry run), returns now
+	if jIssue.Key == "" {
+		return nil
+	}
+
 	jIssue, err = jClient.GetIssue(jIssue.Key)
 	if err != nil {
 		return err
